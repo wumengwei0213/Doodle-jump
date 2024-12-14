@@ -24,6 +24,9 @@ private:
 	 * @see Game::game_update()
 	 */
 	enum class STATE {
+		/* ---- Revise start ---- */
+		MENU, // -> START
+		/* ---- Revise end ---- */
 		START, // -> LEVEL
 		LEVEL, // -> PAUSE, END
 		PAUSE, // -> LEVEL
@@ -33,6 +36,14 @@ private:
 	ALLEGRO_EVENT event;
 	ALLEGRO_BITMAP *game_icon;
 	ALLEGRO_BITMAP *background;
+	/* ---- Revise start ---- */
+	ALLEGRO_BITMAP *menu;
+	ALLEGRO_BITMAP *play;
+	float y_offset = 0;			// 背景圖片的 Y 偏移量
+	bool is_moving = false;		// 是否正在移動
+	float target_offset = 0;	// 目標的 Y 偏移量
+	const float move_speed = 5; // 每幀移動的距離
+	/* ---- Revise end ---- */
 private:
 	ALLEGRO_DISPLAY *display;
 	ALLEGRO_TIMER *timer;

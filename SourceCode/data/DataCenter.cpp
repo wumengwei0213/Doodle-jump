@@ -12,8 +12,10 @@
 // fixed settings
 namespace DataSetting {
 	constexpr double FPS = 60;
-	constexpr int window_width = 800;
-	constexpr int window_height = 600;
+	/* ---- Revise start ---- */
+	constexpr int window_width = 640;
+	constexpr int window_height = 960;
+	/* ---- Revise end ---- */
 	constexpr int game_field_length = 600;
 }
 
@@ -46,4 +48,7 @@ DataCenter::~DataCenter() {
 	for(Bullet *&b : towerBullets) {
 		delete b;
 	}
+	/* ---- Revise start ---- */
+	delete hero;
+	/* ---- Revise end ---- */
 }

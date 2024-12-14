@@ -21,7 +21,14 @@
 // fixed settings
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
 constexpr char game_start_sound_path[] = "./assets/sound/growl.wav";
-constexpr char background_img_path[] = "./assets/image/StartBackground.jpg";
+
+/* ---- Revise start ---- */
+constexpr char menu_img_path[] = "./assets/image/main_menu.png";
+constexpr char menu_play_img_path[] = "./assets/image/play.png";
+/* ---- Revise end ---- */
+
+
+constexpr char background_img_path[] = "./assets/image/default.png";
 constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
 
 /**
@@ -140,9 +147,15 @@ Game::game_init() {
 	/* ---- Revise end ---- */
 
 	// game start
+	/* ---- Revise start ---- */
+	menu = IC->get(menu_img_path);
+	play = IC->get(menu_play_img_path);
+	/* ---- Revise end ---- */
 	background = IC->get(background_img_path);
-	debug_log("Game state: change to START\n");
-	state = STATE::START;
+	/* ---- Revise start ---- */
+	debug_log("Game state: change to Menu\n");
+	state = STATE::MENU;
+	/* ---- Revise end ---- */
 	al_start_timer(timer);
 }
 
@@ -160,9 +173,38 @@ Game::game_update() {
 	static ALLEGRO_SAMPLE_INSTANCE *background = nullptr;
 
 	switch(state) {
+		/* ---- Revise start ---- */
+		case STATE::MENU:{
+			static bool is_played = false;
+			static ALLEGRO_SAMPLE_INSTANCE *instance = nullptr;
+			if (!is_played)
+			{
+				instance = SC->play(game_start_sound_path, ALLEGRO_PLAYMODE_ONCE);
+				DC->level->load_level(1);
+				is_played = true;
+			}
+
+			if (DC->mouse_state[1] && !DC->prev_mouse_state[1]) // 剛按下左鍵
+			{
+				int mouse_x = DC->mouse.x;
+				int mouse_y = DC->mouse.y;
+
+				// 檢查是否在 play 按鈕範圍內
+				if (mouse_x >= 200 && mouse_x <= 200 + al_get_bitmap_width(play) &&
+					mouse_y >= 400 && mouse_y <= 400 + al_get_bitmap_height(play))
+				{
+					debug_log("<Game> state: change to START\n");
+					state = STATE::START;
+				}
+			}
+
+			break;
+		}
+		/* ---- Revise end ---- */
 		case STATE::START: {
 			static bool is_played = false;
 			static ALLEGRO_SAMPLE_INSTANCE *instance = nullptr;
+			/*
 			if(!is_played) {
 				instance = SC->play(game_start_sound_path, ALLEGRO_PLAYMODE_ONCE);
 				DC->level->load_level(1);
@@ -173,6 +215,39 @@ Game::game_update() {
 				debug_log("<Game> state: change to LEVEL\n");
 				state = STATE::LEVEL;
 			}
+			*/
+			if (state == STATE::START)
+			{
+				// 當按下空白鍵時開始移動
+				if (DC->key_state[ALLEGRO_KEY_SPACE] && !DC->prev_key_state[ALLEGRO_KEY_SPACE] && !is_moving)
+				{
+					is_moving = true;				// 開始移動
+					target_offset = y_offset + 200; // 設定目標移動距離
+				}
+
+				// 如果正在移動，更新 y_offset
+				if (is_moving)
+				{
+					y_offset += move_speed;		   // 每幀增加移動距離
+					if (y_offset >= target_offset) // 如果達到目標，停止移動
+					{
+						y_offset = target_offset;
+						is_moving = false;
+					}
+				}
+
+				DC->player->update();
+				SC->update();
+				ui->update();
+				/* ---- Revise start ---- */
+				DC->hero->update();
+				/* ---- Revise end ---- */
+				if(state != STATE::START) {
+					DC->level->update();
+					OC->update();
+				}
+			}
+
 			break;
 		} case STATE::LEVEL: {
 			static bool BGM_played = false;
@@ -207,18 +282,22 @@ Game::game_update() {
 		}
 	}
 	// If the game is not paused, we should progress update.
-	if(state != STATE::PAUSE) {
-		DC->player->update();
-		SC->update();
-		ui->update();
-		/* ---- Revise start ---- */
-		DC->hero->update();
-		/* ---- Revise end ---- */
-		if(state != STATE::START) {
-			DC->level->update();
-			OC->update();
-		}
-	}
+	
+	
+	// if(state != STATE::PAUSE) {
+	// 	DC->player->update();
+	// 	SC->update();
+	// 	ui->update();
+	// 	/* ---- Revise start ---- */
+	// 	DC->hero->update();
+	// 	/* ---- Revise end ---- */
+	// 	if(state != STATE::START) {
+	// 		DC->level->update();
+	// 		OC->update();
+	// 	}
+	// }
+	
+
 	// game_update is finished. The states of current frame will be previous states of the next frame.
 	memcpy(DC->prev_key_state, DC->key_state, sizeof(DC->key_state));
 	memcpy(DC->prev_mouse_state, DC->mouse_state, sizeof(DC->mouse_state));
@@ -236,29 +315,66 @@ Game::game_draw() {
 
 	// Flush the screen first.
 	al_clear_to_color(al_map_rgb(100, 100, 100));
-	if(state != STATE::END) {
-		// background
-		al_draw_bitmap(background, 0, 0, 0);
-		if(DC->game_field_length < DC->window_width)
+
+	/* ---- Revise start ---- */
+	if (state == STATE::MENU)
+	{
+
+		al_draw_bitmap(menu, 0, 0, 0);
+		al_draw_bitmap(play, 200, 400, 0);
+		/*
+		if (DC->game_field_length < DC->window_width)
 			al_draw_filled_rectangle(
 				DC->game_field_length, 0,
 				DC->window_width, DC->window_height,
 				al_map_rgb(100, 100, 100));
-		if(DC->game_field_length < DC->window_height)
+		if (DC->game_field_length < DC->window_height)
 			al_draw_filled_rectangle(
 				0, DC->game_field_length,
 				DC->window_width, DC->window_height,
 				al_map_rgb(100, 100, 100));
-		// user interface
-		if(state != STATE::START) {
-			DC->level->draw();
-			/* ---- Revise start ---- */
-			DC->hero->draw();
-			/* ---- Revise end ---- */
-			ui->draw();
-			OC->draw();
-		}
+				*/
 	}
+	if (state == STATE::START)
+	{
+		// 根據 y_offset 繪製背景
+		al_draw_bitmap(background, 0, y_offset, 0);
+
+		// 如果背景未完全覆蓋畫面，繪製額外的圖片來填補空白
+		float background_height = al_get_bitmap_height(background);
+		if (y_offset > 0)
+		{
+			al_draw_bitmap(background, 0, y_offset - background_height, 0);
+		}
+
+		/* ---- Revise start ---- */
+		DC->hero->draw();
+		/* ---- Revise end ---- */
+	}
+	/* ---- Revise end ---- */
+	// if(state != STATE::END) {
+	// 	// background
+	// 	al_draw_bitmap(background, 0, 0, 0);
+	// 	if(DC->game_field_length < DC->window_width)
+	// 		al_draw_filled_rectangle(
+	// 			DC->game_field_length, 0,
+	// 			DC->window_width, DC->window_height,
+	// 			al_map_rgb(100, 100, 100));
+	// 	if(DC->game_field_length < DC->window_height)
+	// 		al_draw_filled_rectangle(
+	// 			0, DC->game_field_length,
+	// 			DC->window_width, DC->window_height,
+	// 			al_map_rgb(100, 100, 100));
+	// 	// user interface
+	// 	if(state != STATE::START) {
+	// 		DC->level->draw();
+	// 		/* ---- Revise start ---- */
+	// 		DC->hero->draw();
+	// 		/* ---- Revise end ---- */
+	// 		ui->draw();
+	// 		OC->draw();
+	// 	}
+	// }
 	switch(state) {
 		case STATE::START: {
 		} case STATE::LEVEL: {
